@@ -6,6 +6,8 @@ using LogicaSignosVitales.Exceptions;
 using LogicaSignosVitales.Interfaces;
 using LogicaSignosVitales.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Security.Claims;
@@ -16,12 +18,32 @@ using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddControllers();
 
 
-builder.Services.AddControllers(options =>
+builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
-    options.Filters.Add<CustomModelStateValidationFilter>(); 
+    options.InvalidModelStateResponseFactory = actionContext =>
+    {
+        var errorsInModelState = actionContext.ModelState
+            .Where(x => x.Value.Errors.Count > 0)
+            .ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value.Errors
+                    .Select(e => e.ErrorMessage.Contains("required") ? "requerido" :
+                                 e.ErrorMessage.Contains("regular expression") ? $" no cumple con el formato esperado" :
+                                 e.ErrorMessage.Contains("max length") ? $"{kvp.Key} es demasiado largo" :
+                                 e.ErrorMessage)
+                    .FirstOrDefault()
+            );
+
+        return new ObjectResult(errorsInModelState)
+        {
+            StatusCode = StatusCodes.Status422UnprocessableEntity
+        };
+    };
 });
+
 
 
 builder.Services.AddCors(options =>
@@ -112,30 +134,52 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+
 app.Use(async (context, next) =>
 {
-    await next();
+    try
+    {
+        // Primero llamas al siguiente middleware en la cadena
+        await next();
+    }
+    catch (DbUpdateException ex)
+    {
+        context.Response.StatusCode = 400; 
+        var result = JsonSerializer.Serialize(new
+        {
+            Mensaje = ex.Message 
+        });
+        await context.Response.WriteAsync(result);
+    }
 
+    catch (Exception ex)
+    {
+        // Manejar excepciones aquí y devolver una respuesta JSON
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+
+        var result = JsonSerializer.Serialize(new
+        {
+            Mensaje = $"Ah ocurrido un error inesperado en el servidor, por favor contactar al administrador del sistema. ({ex.Message})"
+        });
+
+        await context.Response.WriteAsync(result);
+    }
+
+    // Luego verificas el código de estado de la respuesta
     if (context.Response.StatusCode == 401)
     {
-        var result = JsonSerializer.Serialize(new { message = "No se a logeado para realizar este proceso." });
+        var result = JsonSerializer.Serialize(new { Mensaje = "No se ha autenticado para realizar este proceso." });
         context.Response.ContentType = "application/json";
         await context.Response.WriteAsync(result);
     }
-    if (context.Response.StatusCode == 403)
+    else if (context.Response.StatusCode == 403)
     {
-        var result = JsonSerializer.Serialize(new { message = "No tienes permiso para realizar esta acción." });
-        context.Response.ContentType = "application/json";
-        await context.Response.WriteAsync(result);
-    }
-    if (context.Response.StatusCode == 500)
-    {
-        var result = JsonSerializer.Serialize(new { message = "Ah ocurrido un error inesperado en el servidor,porfavor contactar al administrador del sistema." });
+        var result = JsonSerializer.Serialize(new { Mensaje = "No tienes permiso para realizar esta acción." });
         context.Response.ContentType = "application/json";
         await context.Response.WriteAsync(result);
     }
 });
-
 
 
 

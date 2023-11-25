@@ -27,9 +27,13 @@ namespace WebApiSignosVitales.Controllers
                 var pabellon = await _censoService.MostrarCamas(codigo_pabellon);                
                 return Ok(new { pabellon });
             }
-            catch (ValidationPabellonNullException)
+            catch (ValidationArgumentsEntityNullException)
             {
-                return BadRequest("El campo codigo_pabellon es obligatorio");
+                return BadRequest(new { mensaje= "El pabellon no existe " });
+            }
+            catch (ValidationListaConValidacionNullReferenceException)
+            {
+                return BadRequest(new { mensaje = "Lista Nulla Invalida" });
             }
            
 

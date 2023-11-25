@@ -29,13 +29,13 @@ public partial class NotaEnfermeriaDbContext : DbContext, INotaEnfermeriaDbConte
         }
         catch (DbUpdateException ex)
         {
-            var mensaje = $"se está ingresando un campo que ya existe: {ex.Message}";
-            throw new DbUpdateException(mensaje);
+            var mensaje = $"existe un campo que infringe las restriciones de la base de datos: {ex.Message}";
+            throw new DbUpdateException(mensaje,ex);
         }
         catch (Exception ex)
         {
             var message = $"Ocurrió un error al guardar los cambios: {ex.Message}";
-            throw new Exception(message);
+            throw new Exception(message, ex);
         }
     }
 

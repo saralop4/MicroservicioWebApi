@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LogicaSignosVitales")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a3c1fc3f8fd5084bbec20f122993bce43b66fb84")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6596637c89ace92384f8c9150cac65c4901ea46c")]
 [assembly: System.Reflection.AssemblyProductAttribute("LogicaSignosVitales")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LogicaSignosVitales")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

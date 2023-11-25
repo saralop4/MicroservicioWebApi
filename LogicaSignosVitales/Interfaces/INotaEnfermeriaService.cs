@@ -12,11 +12,13 @@ namespace LogicaSignosVitales.Interfaces
 {
     public  interface INotaEnfermeriaService
     {
-        Task<NotaEnfermeriaDTOs> ObtenerSignoVital(string? numero, int? estudio);
+        Task<NotaEnfermeriaDTOs> ObtenerSignoVital(string? numero);
 
         Task<NotaEnfermeriaDTOs> CrearSignoVital(NotaEnfermeriaDTOs notaEnfermeriaDtos);
+        Task<NotaEnfermeriaDTOs> ObtenerSignoVitalxEvolucion(string? nroevolucionrelacionado);
 
-        Task ActualizarSignoVital(string? numero, NotaEnfermeriaDTOs notaEnfermeriaDtos);
+        Task ActualizarPorNumeroSignovital(string? numero, NotaEnfermeriaDTOs notaEnfermeriaDtos);
+        Task ActualizarPorNroEvolucionRelacionado(string? nroEvolucionRelacionado, NotaEnfermeriaDTOs notaEnfermeriaDtos);
 
     }
 }

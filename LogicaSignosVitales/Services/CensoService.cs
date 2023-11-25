@@ -1,10 +1,14 @@
 ﻿using DataCenso.DTOs;
 using DataSignosVitales.DTOs;
+using DataSignosVitales.Entities.NotaEnfermeriaModels;
 using DataSignosVitales.Interfaces;
 using LogicaSignosVitales.Exceptions;
 using LogicaSignosVitales.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 
 
 namespace LogicaSignosVitales.Services
@@ -21,101 +25,119 @@ namespace LogicaSignosVitales.Services
         public async Task<List<SisCamaDTOs>> MostrarCamas(int? pabellon)
         {
 
-            if (pabellon >= 1 && pabellon != null) {
-
-            var numeroMax = _notaenfermeriadbcontext.SisCamas
-                .Where(sc => sc.Pabellon == pabellon)
-                .SelectMany(sc => _notaenfermeriadbcontext.NotasEnfermeria
-                    .Where(ne => ne.Ingreso == sc.EstudioPaciente)
-                    .DefaultIfEmpty(),
-                    (sc, ne) => new { sc.EstudioPaciente, sc.Codigo, ne.Numero })
-                .GroupBy(x => new { x.EstudioPaciente, x.Codigo })
-                .Select(g => new
-                {
-                    g.Key.EstudioPaciente,
-                    g.Key.Codigo,
-                    NumeroMax = g.Max(x => x.Numero)
-                });
-
-            var mainQuery = _notaenfermeriadbcontext.SisCamas
-                .Where(sc => sc.Pabellon == pabellon)
-                .GroupJoin(_notaenfermeriadbcontext.NotasEnfermeria,
-                    sc => sc.EstudioPaciente,
-                    ne => ne.Ingreso,
-                    (sc, ne) => new { SisCama = sc, NotasEnfermeria = ne })
-                .SelectMany(
-                    x => x.NotasEnfermeria.DefaultIfEmpty(),
-                    (x, ne) => new { x.SisCama, NotasEnfermeria = ne })
-                .Join(numeroMax,
-                    sc => new { sc.SisCama.EstudioPaciente, sc.SisCama.Codigo },
-                    nm => new { nm.EstudioPaciente, nm.Codigo },
-                    (sc, nm) => new
-                    {
-                        sc.SisCama.EstudioPaciente,
-                        sc.SisCama.Codigo
-                    });
-
-            var unionQuery = _notaenfermeriadbcontext.SisCamas
-                .Where(sc => sc.Pabellon == pabellon && (sc.EstudioPaciente == null || sc.EstudioPaciente == -1))
-                .Select(sc => new
-                {
-                    sc.EstudioPaciente,
-                    sc.Codigo
-                });
-
-            var finalQuery = mainQuery.Union(unionQuery);
-
-            var listaSinValidar = await finalQuery.ToListAsync();
-            var listaConValidacion = new List<SisCamaDTOs>();
-
-            foreach (var item in listaSinValidar)
+            bool pabellonExistente = _notaenfermeriadbcontext.SisCamas.Any(u => u.Pabellon == pabellon);
+            if (pabellonExistente)
             {
-                if (item.EstudioPaciente.HasValue && item.EstudioPaciente.Value != -1)
-                {
-                     (string color,string observacion) = await ValidarEstadoConciencia(item.EstudioPaciente.Value);
 
-                    listaConValidacion.Add(new SisCamaDTOs
+                var numeroMax = _notaenfermeriadbcontext.SisCamas
+                    .Where(sc => sc.Pabellon == pabellon)
+                    .SelectMany(sc => _notaenfermeriadbcontext.NotasEnfermeria
+                        .Where(ne => ne.Ingreso == sc.EstudioPaciente)
+                        .DefaultIfEmpty(),
+                        (sc, ne) => new { sc.EstudioPaciente, sc.Codigo, ne.Numero })
+                    .GroupBy(x => new { x.EstudioPaciente, x.Codigo })
+                    .Select(g => new
                     {
-                        Estudio = item.EstudioPaciente.Value,
-                        Nro_Cama = item.Codigo,
-                        Color = color,
-                        Observacion = observacion
+                        g.Key.EstudioPaciente,
+                        g.Key.Codigo,
+                        NumeroMax = g.Max(x => x.Numero)
                     });
-                }
-                else
+
+                var mainQuery = _notaenfermeriadbcontext.SisCamas
+                    .Where(sc => sc.Pabellon == pabellon)
+                    .GroupJoin(_notaenfermeriadbcontext.NotasEnfermeria,
+                        sc => sc.EstudioPaciente,
+                        ne => ne.Ingreso,
+                        (sc, ne) => new { SisCama = sc, NotasEnfermeria = ne })
+                    .SelectMany(
+                        x => x.NotasEnfermeria.DefaultIfEmpty(),
+                        (x, ne) => new { x.SisCama, NotasEnfermeria = ne })
+                    .Join(numeroMax,
+                        sc => new { sc.SisCama.EstudioPaciente, sc.SisCama.Codigo },
+                        nm => new { nm.EstudioPaciente, nm.Codigo },
+                        (sc, nm) => new
+                        {
+                            sc.SisCama.EstudioPaciente,
+                            sc.SisCama.Codigo
+                        });
+
+                var unionQuery = _notaenfermeriadbcontext.SisCamas
+                        .Where(sc => sc.Pabellon == pabellon && (sc.EstudioPaciente == null || sc.EstudioPaciente == -1))
+                        .Select(sc => new
+                        {
+                            sc.EstudioPaciente,
+                            sc.Codigo
+                        });
+
+                var finalQuery = mainQuery.Union(unionQuery);
+
+
+                var listaSinValidar = await finalQuery.ToListAsync();
+                var listaConValidacion = new List<SisCamaDTOs>();
+
+
+
+                foreach (var item in listaSinValidar)
                 {
-                    listaConValidacion.Add(new SisCamaDTOs
+
+
+                    if (item.EstudioPaciente != null && item.EstudioPaciente.Value != -1)
                     {
-                        Estudio = item.EstudioPaciente ?? default(int),
-                        Nro_Cama = item.Codigo,
-                        Color = "No aplicable",
-                        Observacion = "No aplicable"
-                    });
+
+                        (string? color, string? observacion) = await ValidarEstadoConciencia(item.EstudioPaciente.Value);
+
+                        listaConValidacion.Add(new SisCamaDTOs
+                        {
+                            Estudio = (int)item.EstudioPaciente,
+                            Nro_Cama = item.Codigo,
+                            Color = color,
+                            Observacion = observacion
+                        });
+                    }
+                    else
+                    {
+                        listaConValidacion.Add(new SisCamaDTOs
+                        {
+                            Estudio = (int)(item.EstudioPaciente ?? -1),
+                            Nro_Cama = item.Codigo,
+                            Color = "No aplicable",
+                            Observacion = "No aplicable"
+                        });
+                    }
                 }
+
+                if (listaConValidacion != null)
+                {
+                    return listaConValidacion;
+                }
+
+                throw new ValidationListaConValidacionNullReferenceException();
+
             }
 
-            return listaConValidacion;
-            }
-
-            throw new ValidationPabellonNullException();
+            throw new ValidationArgumentsEntityNullException();
         }
 
 
 
         private async Task<(string?, string?)> ValidarEstadoConciencia(int estudioPaciente)
         {
+          
+            
+            var result = await ConsultarLosSignosVitales(estudioPaciente);
 
-            await ValidarEstudioSisMae(estudioPaciente);
 
-            var result = await ValidarEstudioSignosVitales(estudioPaciente);
+            //Console.WriteLine(estudioPaciente);
+            //Console.WriteLine(result.TensionArterial);
 
-            if (result == null)
+            if ( result.TensionArterial == "-1")
             {
-                throw new ValidationEstudioException("error: no se encuentra el registro");
-            }
+                string vacio = "No aplicable";                
+                return (vacio, vacio);
+            };
 
             int sumatoria = 0;
-            string? cadenaOriginal = result.Tamizaje;
+            string? cadenaOriginal = result.TensionArterial;
             char separador = '/';
 
             string[] subcadena = cadenaOriginal.Split(separador);
@@ -124,7 +146,7 @@ namespace LogicaSignosVitales.Services
             {
                 if (int.TryParse(subcadena[i], out int taValue))
                 {
-                    if (i == 0)
+                    if (i == 0) // PAS
                     {
                         sumatoria +=
                             (taValue < 80) ? 3 :
@@ -134,7 +156,7 @@ namespace LogicaSignosVitales.Services
                             (taValue >= 150 && taValue <= 159) ? 2 :
                             (taValue >= 160) ? 3 : 0;
                     }
-                    else if (i == 1)
+                    else if (i == 1) // PAD
                     {
                         sumatoria +=
                             (taValue < 90) ? 0 :
@@ -144,13 +166,15 @@ namespace LogicaSignosVitales.Services
                     }
                 }
             }
+
             if (int.TryParse(result.FrecuenciaRespiratoria, out int frValue))
             {
                 sumatoria +=
                     (frValue < 10) ? 3 :
                     (frValue >= 10 && frValue <= 17) ? 0 :
                     (frValue >= 18 && frValue <= 24) ? 1 :
-                    (frValue >= 25 && frValue <= 29) ? 2 : 3;
+                    (frValue >= 25 && frValue <= 29) ? 2 :
+                    (frValue >= 30) ? 3 : 0;
             }
 
             if (int.TryParse(result.FrecuenciaCardiaca, out int fcValue))
@@ -162,17 +186,21 @@ namespace LogicaSignosVitales.Services
                     (fcValue >= 150) ? 3 : 0;
             }
 
-            if (int.TryParse(result.Oxigeno, out int o2Value))
+
+            if (result.Oxigeno.Equals("Aire ambiente", StringComparison.OrdinalIgnoreCase))
+            {
+               sumatoria += 0;
+            }
+            else if (int.TryParse(result.Oxigeno, out int o2Value))
             {
                 sumatoria +=
                     (o2Value >= 24 && o2Value <= 39) ? 1 :
                     (o2Value >= 40) ? 3 : 0;
             }
 
-            double tpValue;
-            if (result.Temperatura.HasValue)
+            double? tpValue = (double?)result.Temperatura;
+            if (tpValue.HasValue)
             {
-                tpValue = (double)result.Temperatura;
                 sumatoria +=
                     (tpValue < 34.0) ? 3 :
                     (tpValue >= 34.0 && tpValue <= 35.0) ? 1 :
@@ -181,12 +209,8 @@ namespace LogicaSignosVitales.Services
                     (tpValue >= 39) ? 3 : 0;
             }
 
+            sumatoria += (bool)(result.EstadoConciencia ?? false) ? 3 : 0;
 
-            if (result.EstadoConciencia.HasValue)
-            {
-                sumatoria = result.EstadoConciencia == true ? 0 : (result.EstadoConciencia == false ? 3 : sumatoria);
-
-            }
 
             string mensajeAlerta;
             string color;
@@ -194,13 +218,13 @@ namespace LogicaSignosVitales.Services
             {
                 color = "Rojo";
                 mensajeAlerta = "Monitoreo continuo de signos vitales " +
-                    " LLAMADO - Emergente al equipo con competencias para el diagnostico";
+                    " LLAMADO - Emergente al equipo con competencias en el diagnostico";
             }
-            else if (sumatoria >= 4 && sumatoria <= 6)
+            else if (sumatoria >= 4 && sumatoria < 6)
             {
                 color = "Naranja";
                 mensajeAlerta = "Minimo cada hora " +
-                    " LLAMADO - Urgente al equipo medico a cargo de la paciente y al personal" +
+                    " LLAMADO - Urgente al equipo medico a cargo de la paciente y al personal " +
                     "con las competencias para manejo de la enfermedad aguda.";
             }
             else if (sumatoria >= 1 && sumatoria <= 3)
@@ -215,50 +239,65 @@ namespace LogicaSignosVitales.Services
                 mensajeAlerta = "OBSERVACION DE RUTINA";
             }
 
+
+
             return (color, mensajeAlerta);
-
         }
 
-        private async Task ValidarEstudioSisMae(int? estudioPaciente)
+
+        private async Task<NotaEnfermeriaDTOs?> ConsultarLosSignosVitales(int estudioPaciente)
         {
-            var ingreso = await _notaenfermeriadbcontext.SisMaes
-                .Where(md => md.ConEstudio == estudioPaciente)
-                .Select(md => md.ConEstudio)
-                .FirstOrDefaultAsync();
+      
+            var notas = _notaenfermeriadbcontext.NotasEnfermeria
+                   .Where(n => n.Ingreso == estudioPaciente);                   
 
-            if (ingreso.ToString() == null)
+
+            if (notas.Count() == 0)
             {
-                throw new ValidationEstudioException("El Estudio no existe en la base de datos! ");
 
-            }
-
-        }
-
-        private async Task<NotaEnfermeriaDTOs> ValidarEstudioSignosVitales(int estudioPaciente)
-        {
-            var ingresoValido = await _notaenfermeriadbcontext.NotasEnfermeria
-                 .Where(x => x.Ingreso == estudioPaciente)
-                 .OrderByDescending(x => x.Fecha)
-                 .Select(x => new NotaEnfermeriaDTOs
-                 {
-                     Tamizaje = x.Ta,
-                     FrecuenciaCardiaca = x.Fc,
-                     FrecuenciaRespiratoria = x.Fr,
-                     Temperatura = x.Tp,
-                     Oxigeno = x.O2,
-                     EstadoConciencia = x.EstadoConciencia
-                 })
-                 .FirstOrDefaultAsync();
-
-            if (ingresoValido == null)
-            {
-                throw new ValidationEstudioException("El Estudio no existe en la base de datos!");
+                return new NotaEnfermeriaDTOs
+                    {
+                        TensionArterial = "-1",
+                        FrecuenciaCardiaca = "0",
+                        FrecuenciaRespiratoria = "0",
+                        Temperatura = 0M,
+                        Oxigeno = "0",
+                        EstadoConciencia = false
+                };
             }
 
 
-            return ingresoValido;
-        }
+            var numeroMaximo = await notas.MaxAsync(n => n.Numero);
 
-   
+            if (numeroMaximo == null)
+            {
+                return null;
+            }
+
+
+            var ultimaNota = await notas
+                    .Where(n => n.Numero == numeroMaximo )
+                    .Select(n => new NotaEnfermeriaDTOs
+                    {
+                        TensionArterial = n.Ta,
+                        FrecuenciaCardiaca = n.Fc,
+                        FrecuenciaRespiratoria = n.Fr,
+                        Temperatura = n.Tp,
+                        Oxigeno = n.O2,
+                        EstadoConciencia = n.EstadoConciencia ?? false,
+                    })
+                    .FirstOrDefaultAsync();
+    
+            return ultimaNota ?? new NotaEnfermeriaDTOs
+                {
+                    TensionArterial = "-1",
+                    FrecuenciaCardiaca = "0",
+                    FrecuenciaRespiratoria = "0",
+                    Temperatura = 0M,
+                    Oxigeno = "0",
+                    EstadoConciencia = false
+                };
+            }
+
     }
 }

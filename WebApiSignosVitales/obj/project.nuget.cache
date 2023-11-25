@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "5i0nLodhIm5C65va8bD263H2BIbPHNWeGsfBzHGkhVBrCtmAiUY+lxTytrKybBV4rnjdN9ofUCh5OBaAk+WLaQ==",
+  "dgSpecHash": "7NsPdn78bkDa257Jnb79ER0AF3NkRTcQm0Vl6zS7qb8sHGo5A7R1dB1/pEIHK5hLjaRfqPGVdP68ZjbqDtPKNw==",
   "success": true,
   "projectFilePath": "C:\\Users\\carco\\OneDrive\\Documentos\\Sisma\\WebApiSignosVitales\\WebApiSignosVitales.csproj",
   "expectedPackageFiles": [
@@ -122,7 +122,7 @@
     "C:\\Users\\carco\\.nuget\\packages\\microsoft.win32.systemevents\\7.0.0\\microsoft.win32.systemevents.7.0.0.nupkg.sha512",
     "C:\\Users\\carco\\.nuget\\packages\\mono.texttemplating\\2.2.1\\mono.texttemplating.2.2.1.nupkg.sha512",
     "C:\\Users\\carco\\.nuget\\packages\\netstandard.library\\1.6.1\\netstandard.library.1.6.1.nupkg.sha512",
-    "C:\\Users\\carco\\.nuget\\packages\\newtonsoft.json\\13.0.1\\newtonsoft.json.13.0.1.nupkg.sha512",
+    "C:\\Users\\carco\\.nuget\\packages\\newtonsoft.json\\13.0.3\\newtonsoft.json.13.0.3.nupkg.sha512",
     "C:\\Users\\carco\\.nuget\\packages\\nuget.common\\6.3.1\\nuget.common.6.3.1.nupkg.sha512",
     "C:\\Users\\carco\\.nuget\\packages\\nuget.configuration\\6.3.1\\nuget.configuration.6.3.1.nupkg.sha512",
     "C:\\Users\\carco\\.nuget\\packages\\nuget.dependencyresolver.core\\6.3.1\\nuget.dependencyresolver.core.6.3.1.nupkg.sha512",

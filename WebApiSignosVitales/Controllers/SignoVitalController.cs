@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
+using System.Text.RegularExpressions;
 using static System.Runtime.InteropServices.JavaScript.JSType;
-
 
 
 namespace WebApiSignosVitales.Controllers
@@ -31,72 +31,99 @@ namespace WebApiSignosVitales.Controllers
         [HttpPost("CrearSignoVital")]
         public async Task<IActionResult> CrearSignoVital(NotaEnfermeriaDTOs notaEnfermeria)
         {
-
+         
             try
             {
                 await _notaEnfermeriaService.CrearSignoVital(notaEnfermeria);
 
-                var mensaje = $"Signos vitales guardados exitosamente.";
-                return Ok(new { Message = mensaje, Nota = notaEnfermeria });
+                var message = "Signos vitales guardados exitosamente.";
+                return Ok( new { mensaje = message });
             }
-            catch (ValidationNumeroSignoVitalDbUpdateException ex)
+            catch (ValidationNumeroSignoVitalDbUpdateException )
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { mensaje = "El numero del signo vital ya existe" });
             }
-            catch (ValidationEstudioException ex)
+            catch (ValidationEstudioException)
             {
-                return BadRequest(new { Error = ex.Message });
+                return BadRequest(new { mensaje = "El Estudio es invalido" });
             }
-            catch (ValidationCodigoEnfermeraExcepcion ex)
+            catch (ValidationCodigoEnfermeraExcepcion)
             {
-                return BadRequest(new { Error = ex.Message });
+                return BadRequest(new { mensaje = "El codigo de la enfermera no se encuentra registrada " });
             }
-
 
         }
 
         [HttpGet("ObtenerSignoVital")]
-        public async Task<IActionResult> ObtenerSignoVital(string? numero_Signovital, int? estudio)
+        public async Task<IActionResult> ObtenerSignoVital(string? numero_Signovital, string? nroevolucionrelacionado)
         {
-
             try
             {
+                // Validar que solo uno de los dos parámetros esté presente
+                if (!string.IsNullOrEmpty(numero_Signovital) && !string.IsNullOrEmpty(nroevolucionrelacionado))
+                {
+                    return BadRequest(new { mensaje = "Solo se permite uno de los dos parámetros: numero_Signovital o nroevolucionrelacionado" });                    
+                }
 
-                var result = await _notaEnfermeriaService.ObtenerSignoVital(numero_Signovital, estudio);
-
-                return Ok(result);
-
+                if (!string.IsNullOrEmpty(numero_Signovital))
+                {
+                    var result = await _notaEnfermeriaService.ObtenerSignoVital(numero_Signovital);
+                    return Ok(result);
+                }
+                else if (!string.IsNullOrEmpty(nroevolucionrelacionado))
+                {
+                    var result = await _notaEnfermeriaService.ObtenerSignoVitalxEvolucion(nroevolucionrelacionado);
+                    return Ok(result);
+                }
+                else
+                {                                        
+                    return BadRequest(new { mensaje = "Se debe proporcionar uno de los dos parámetros: numero_Signovital o nroevolucionrelacionado" });
+                }
             }
-
             catch (ValidationNumeroSignoVitalRequeridoException)
             {
-                return BadRequest("El numero_Signovital es obligatorio.");
+                return BadRequest(new { mensaje = "numero_SignoVital es obligatorio" });
             }
-
+            catch (ValidationNroEvolucionSignoVitalRequeridoException)
+            {
+                return BadRequest(new { mensaje = "nroevolucionrelacionado es obligatorio" });
+            }
+            catch (ValidationEntityExisting)
+            {
+                return BadRequest(new { mensaje = "El objeto no existe" });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { mensaje = ex.Message });
+            }
         }
+
 
         [HttpPut("ActualizarSignoVital")]
-        public async Task<IActionResult> ActualizarSignoVital(string numero_Signovital, NotaEnfermeriaDTOs notaEnfermeria)
+        public async Task<IActionResult> ActualizarSignoVital(string? numero_Signovital, string? nroEvolucionRelacionado, NotaEnfermeriaDTOs notaEnfermeria)
         {
             try
             {
-                await _notaEnfermeriaService.ActualizarSignoVital(numero_Signovital, notaEnfermeria);
+                if (numero_Signovital != null)
+                {
+                    await _notaEnfermeriaService.ActualizarPorNumeroSignovital(numero_Signovital, notaEnfermeria);
+                }
+                else if (nroEvolucionRelacionado != null)
+                {
+                    await _notaEnfermeriaService.ActualizarPorNroEvolucionRelacionado(nroEvolucionRelacionado, notaEnfermeria);
+                }
+                else
+                {
+                    return BadRequest(new { mensaje = "Debe proporcionar al menos uno de los valores: numero_Signovital o nroEvolucionRelacionado." });
+                }
 
-                var mensaje = $"Signos vitales se ha actualizado exitosamente.";
-                return Ok(new { Message = mensaje, Nota = notaEnfermeria });
+                var message = $"Signos vitales se ha actualizado exitosamente.";
+                return Ok(new { mensaje = message });
             }
-            catch (ValidationNumeroSignoVitalRequeridoException)
+            catch (ValidationEntityExisting)
             {
-                return BadRequest("El numero_Signovital es obligatorio.");
+                return BadRequest(new { mensaje = "El registro a actualizar no existe." });
             }
-            catch (ValidationNumeroSignoVitalDbUpdateException)
-            {
-                return BadRequest("El registro a actualizar no existe en la base de datos");
-
-            }
-
-
         }
-
     }
 }

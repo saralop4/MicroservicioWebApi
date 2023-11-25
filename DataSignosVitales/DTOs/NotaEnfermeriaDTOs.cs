@@ -12,56 +12,84 @@ namespace DataSignosVitales.DTOs
     public class NotaEnfermeriaDTOs
     {
 
-        [Required(ErrorMessage = "El campo numero_SignoVital es requerido.")]
-        [MaxLength(10, ErrorMessage = " longitud maxima permita de 10")]
-        public string Numero_SignoVital { get; set; } = null!;
+        [RegularExpression(@"^[0-9]+$")]
+        [MaxLength(10)]
+        public string? Numero_SignoVital { get; set; }
 
-        public int Estudio { get; set; }
+        [Required]
+        [RegularExpression(@"^\d+$")]
+        public int? Estudio { get; set; }
 
+        [Required]
+        [DisplayFormat(ApplyFormatInEditMode = true, DataFormatString = "{0:yyyy-MM-dd}")]
         public DateTime? Fecha { get; set; }
 
+        [Required]
+        [RegularExpression(@"^([01]?[0-9]|2[0-3]):[0-5][0-9]$")]
         public string? Hora { get; set; }
 
-        public string? Nota { get; set; } = "";
+        public string? Nota { get; set; } = " ";
 
+        [RegularExpression(@"^[a-zA-Z ]+$")]
+        [Required]
         public string? Enfermera { get; set; }
 
-        [MaxLength(10, ErrorMessage = "longitud maxima permita de 10 caracteres")]
+
+        [Required]
+        [MaxLength(10)]
+        [RegularExpression(@"^\d+$")]
         public string? CodigoEnfermera { get; set; }
 
-        [MaxLength(10, ErrorMessage = "longitud maxima permita de 10 caracteres")]
+        [Required]
+        [MaxLength(10)]
+        [RegularExpression("^[0-9/]+$")]
         public string? TensionArterial { get; set; }
 
-        [MaxLength(10, ErrorMessage = "longitud maxima permita de 10 caracteres")]
+        [Required]
+        [MaxLength(10)]
+        [RegularExpression(@"^[0-9]+(\.[0-9]+)?$")]
         public string? FrecuenciaCardiaca { get; set; }
 
-        [MaxLength(10, ErrorMessage = "longitud maxima permita de 10 caracteres")]
+        [Required]
+        [MaxLength(10)]
+        [RegularExpression(@"^[0-9]+(\.[0-9]+)?$")]
         public string? FrecuenciaRespiratoria { get; set; }
 
-        [MaxLength(10, ErrorMessage = "longitud maxima permita de 10 caracteres")]
-        public string? Peso { get; set; }
+        [Required]
+        [MaxLength(10)]
+        [RegularExpression(@"^[0-9]+$")]
+        public string Peso { get; set; }
 
+        [Required]
+        [RegularExpression(@"^\d+(\.\d+)?$")]
         public decimal? Temperatura { get; set; }
 
-        [MaxLength(10, ErrorMessage = "longitud maxima permita de 10 caracteres")]
+        [Required]
+        [MaxLength(10)]
+        [RegularExpression(@"^[a-zA-Z0-9 ]+$")]
         public string? Oxigeno { get; set; }
 
-        [JsonIgnore]
-        public int? SoloVitales { get; set; } = 1;
+        public int? SoloVitales { get; set; } = 1; 
 
-        [JsonIgnore]
         public bool Cerrada { get; set; } = false;
+
+        [Required]
+        [RegularExpression(@"^[0-9]+(\.[0-9]+)?$")]
         public decimal? Glucometria { get; set; }
 
+        
+        [RegularExpression(@"^[0-9]+(\.[0-9]+)?$")]
         public int? UnidadFuncional { get; set; }
 
-        [MaxLength(10, ErrorMessage = "longitud maxima permita de 10 caracteres")]
+  
+        [MaxLength(10)]
+        [RegularExpression(@"^\d+(\.\d+)?$")]
         public string? Tamizaje { get; set; }
 
-        public bool? EstadoConciencia { get; set; }
 
+        [Required]
+        public bool? EstadoConciencia { get; set; } = false;
 
-
-
+        public string? NroEvolucionRelacionado { get; set; }
     }
 }
